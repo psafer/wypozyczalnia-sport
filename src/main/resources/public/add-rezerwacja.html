@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dodaj rezerwację</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">Wypożyczalnia</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="sprzet.html">Sprzęt</a></li>
+        <li class="nav-item"><a class="nav-link" href="add-sprzet.html">Dodaj sprzęt</a></li>
+        <li class="nav-item"><a class="nav-link" href="rezerwacje.html">Rezerwacje</a></li>
+        <li class="nav-item"><a class="nav-link" href="add-rezerwacja.html">Dodaj rezerwację</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-3">
+
+    <h1 class="mb-4">Dodaj rezerwację</h1>
+
+    <form id="rezForm" class="card p-4 shadow-sm">
+
+        <div class="mb-3">
+            <label class="form-label">ID sprzętu</label>
+            <input type="number" id="eqId" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Użytkownik</label>
+            <input type="text" id="user" class="form-control" required>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col">
+                <label class="form-label">Data od</label>
+                <input type="date" id="from" class="form-control" required>
+            </div>
+
+            <div class="col">
+                <label class="form-label">Data do</label>
+                <input type="date" id="to" class="form-control" required>
+            </div>
+        </div>
+
+        <button class="btn btn-success w-100">Dodaj rezerwację</button>
+
+    </form>
+
+</div>
+
+<script>
+document.getElementById("rezForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const data = {
+        equipmentId: parseInt(document.getElementById("eqId").value),
+        userName: document.getElementById("user").value,
+        dateFrom: document.getElementById("from").value,
+        dateTo: document.getElementById("to").value
+    };
+
+    fetch("/rezerwacje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        alert("Rezerwacja dodana!");
+        window.location.href = "rezerwacje.html";
+    });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

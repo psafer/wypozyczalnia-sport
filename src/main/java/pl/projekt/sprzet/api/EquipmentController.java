@@ -35,5 +35,17 @@ public class EquipmentController {
                     .map(gson::toJson)
                     .orElse("{}");
         });
+        // POST /sprzet
+        post("/sprzet", (req, res) -> {
+            Equipment eq = gson.fromJson(req.body(), Equipment.class);
+
+            int newId = equipmentList.size() + 1;
+            eq.setId(newId);
+            equipmentList.add(eq);
+
+            res.status(201);
+            return gson.toJson(eq);
+        });
+
     }
 }

@@ -13,12 +13,15 @@ public class Equipment {
         this.available = available;
     }
 
+    // GETTERY
     public int getId() { return id; }
     public String getName() { return name; }
     public String getType() { return type; }
     public boolean isAvailable() { return available; }
 
-    public void setAvailable(boolean available) {
-        this.available = available;
-    }
+    // SETTERY
+    public void setId(int id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setType(String type) { this.type = type; }
+    public void setAvailable(boolean available) { this.available = available; }
 }
