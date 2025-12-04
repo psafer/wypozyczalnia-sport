@@ -4,6 +4,7 @@ import static spark.Spark.*;
 
 import pl.projekt.sprzet.api.EquipmentController;
 import pl.projekt.sprzet.api.ReservationController;
+import pl.projekt.sprzet.db.DatabaseManager;
 import pl.projekt.sprzet.view.ViewController;
 
 public class App {
@@ -11,6 +12,7 @@ public class App {
         port(8080);
         staticFiles.location("/public");
 
+        DatabaseManager.initDatabase();
 
         EquipmentController.initRoutes();
         ViewController.initViews();
