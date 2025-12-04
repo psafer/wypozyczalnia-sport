@@ -1,0 +1,19 @@
+# Maven
+/target/
+
+# VS Code
+.vscode/
+.classpath
+.project
+.settings/
+
+# IntelliJ (na wszelki wypadek)
+.idea/
+*.iml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Databases
+*.db
