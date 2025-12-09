@@ -30,11 +30,14 @@
 
     <h1 class="mb-4">Dodaj rezerwację</h1>
 
+    <div id="error-msg" class="alert alert-danger d-none"></div>
+
     <form id="rezForm" class="card p-4 shadow-sm">
 
         <div class="mb-3">
             <label class="form-label">Wybierz sprzęt</label>
-            <select id="eqId" class="form-select"></select>
+            <select id="eqId" class="form-select" required></select>
+            <div class="form-text text-muted" id="availability-hint">Wybierz sprzęt, aby sprawdzić dostępność.</div>
         </div>
         <div class="mb-3">
             <label class="form-label">Użytkownik</label>
@@ -53,7 +56,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Ilość</label>
-                <input type="number" id="amount" class="form-control" value="1" min="1">
+                <input type="number" id="amount" class="form-control" value="1" min="1" required>
             </div>
         </div>
 
@@ -64,35 +67,101 @@
 </div>
 
 <script>
-    fetch("/sprzet").then(res => res.json()).then(data => {
-    const select = document.getElementById("eqId");
-    data.forEach(eq => {
-        const option = document.createElement("option");
-        option.value = eq.id;
-        option.textContent = eq.name + " (dostępne: " + eq.quantity + ")";
-        select.appendChild(option);
-    });
-    });
-document.getElementById("rezForm").addEventListener("submit", function(e) {
-    e.preventDefault();
+    // Funkcja pomocnicza do wyświetlania błędów
+    function showError(message) {
+        const errorDiv = document.getElementById("error-msg");
+        errorDiv.textContent = message;
+        errorDiv.classList.remove("d-none");
+        // Przewiń do góry, żeby użytkownik zobaczył błąd
+        window.scrollTo(0, 0);
+    }
 
-    const data = {
-        equipmentId: parseInt(document.getElementById("eqId").value),
-        userName: document.getElementById("user").value,
-        dateFrom: document.getElementById("from").value,
-        dateTo: document.getElementById("to").value,
-        amount: parseInt(document.getElementById("amount").value)
-    };
-    fetch("/rezerwacje", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    })
-    .then(() => {
-        alert("Rezerwacja dodana!");
-        window.location.href = "rezerwacje.html";
+    // 1. Pobieranie sprzętu i ustawianie limitów
+    fetch("/sprzet").then(res => res.json()).then(data => {
+        const select = document.getElementById("eqId");
+        
+        data.forEach(eq => {
+            const option = document.createElement("option");
+            option.value = eq.id;
+            // ZAPISUJEMY DOSTĘPNĄ ILOŚĆ W ATRYBUCIE DATA
+            option.dataset.max = eq.quantity; 
+            option.textContent = eq.name + " (dostępne: " + eq.quantity + ")";
+            select.appendChild(option);
+        });
     });
-});
+
+    document.getElementById("rezForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        
+        // Ukryj poprzednie błędy
+        document.getElementById("error-msg").classList.add("d-none");
+
+        // Pobieranie danych z formularza
+        const eqSelect = document.getElementById("eqId");
+        const selectedOption = eqSelect.options[eqSelect.selectedIndex];
+        
+        // Jeśli lista sprzętu jest pusta
+        if (!selectedOption) {
+            showError("Brak sprzętu do wyboru!");
+            return;
+        }
+
+        const maxAvailable = parseInt(selectedOption.dataset.max);
+        const amount = parseInt(document.getElementById("amount").value);
+        const dateFromVal = document.getElementById("from").value;
+        const dateToVal = document.getElementById("to").value;
+        const dateFrom = new Date(dateFromVal);
+        const dateTo = new Date(dateToVal);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        //walidacja
+
+  
+        if (amount <= 0) {
+            showError("Ilość musi być większa niż 0.");
+            return;
+        }
+        if (amount > maxAvailable) {
+            showError(`Nie mamy tyle sprzętu! Dostępne tylko: ${maxAvailable} szt.`);
+            return;
+        }
+        if (dateTo < dateFrom) {
+            showError("Data zwrotu nie może być wcześniejsza niż data wypożyczenia!");
+            return;
+        }
+
+        if (dateFrom < today) {
+             showError("Nie można robić rezerwacji wstecz!");
+             return;
+        }
+
+        const data = {
+            equipmentId: parseInt(eqSelect.value),
+            userName: document.getElementById("user").value,
+            dateFrom: dateFromVal,
+            dateTo: dateToVal,
+            amount: amount
+        };
+
+        fetch("/rezerwacje", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                alert("Rezerwacja dodana pomyślnie!");
+                window.location.href = "rezerwacje.html";
+            } else {
+                showError("Wystąpił błąd serwera podczas dodawania rezerwacji.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showError("Nie udało się połączyć z serwerem.");
+        });
+    });
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
