@@ -1,0 +1,116 @@
+package pl.projekt.sprzet.api;
+
+import com.google.gson.Gson;
+import pl.projekt.sprzet.db.DatabaseManager;
+import pl.projekt.sprzet.model.Client;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static spark.Spark.*;
+
+public class ClientController {
+
+    private static final Gson gson = new Gson();
+
+    public static void initRoutes() {
+
+        // GET /klienci - Pobierz listę wszystkich klientów
+        get("/klienci", (req, res) -> {
+            res.type("application/json");
+            List<Client> clients = new ArrayList<>();
+
+            try (Connection conn = DatabaseManager.getConnection();
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM klienci")) {
+
+                while (rs.next()) {
+                    clients.add(new Client(
+                            rs.getInt("id"),
+                            rs.getString("firstName"),
+                            rs.getString("lastName"),
+                            rs.getString("phone"),
+                            rs.getString("documentId")));
+                }
+            }
+            return gson.toJson(clients);
+        });
+
+        // POST /klienci - Dodaj nowego klienta
+        post("/klienci", (req, res) -> {
+            res.type("application/json");
+            Client newClient = gson.fromJson(req.body(), Client.class);
+
+            String sql = "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES (?, ?, ?, ?)";
+
+            try (Connection conn = DatabaseManager.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+                ps.setString(1, newClient.getFirstName());
+                ps.setString(2, newClient.getLastName());
+                ps.setString(3, newClient.getPhone());
+                ps.setString(4, newClient.getDocumentId());
+                ps.executeUpdate();
+
+                ResultSet keys = ps.getGeneratedKeys();
+                if (keys.next()) {
+                    newClient.setId(keys.getInt(1));
+                }
+            }
+
+            res.status(201);
+            return gson.toJson(newClient);
+        });
+
+        // PUT /klienci/:id - Edycja danych klienta
+        put("/klienci/:id", (req, res) -> {
+            res.type("application/json");
+
+            // Pobranie id z adresu url np. klienci/5
+            int id = Integer.parseInt(req.params("id"));
+
+            // pobieramy nowe dane z JSONA wysłanego przez formularz
+            Client client = gson.fromJson(req.body(), Client.class);
+
+            String sql = "UPDATE klienci SET firstName = ?, lastName = ?, phone = ?, documentId = ? WHERE id = ?";
+
+            try (Connection conn = DatabaseManager.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, client.getFirstName());
+                ps.setString(2, client.getLastName());
+                ps.setString(3, client.getPhone());
+                ps.setString(4, client.getDocumentId());
+                ps.setInt(5, id);
+
+                int rowsAffected = ps.executeUpdate();
+
+                if (rowsAffected == 0) {
+                    res.status(404);// jesli nie ma takiego id
+                    return "{\"error\":\"Client not found\"}";
+                }
+            }
+            return "{\"status\":\"updated\"}";
+        });
+
+        // delete klienci/id
+        delete("/klienci/:id", (req, res) -> {
+            // Musisz pobrać parametr z requestu (req.params)
+            String idParam = req.params("id");
+            int id = Integer.parseInt(idParam);
+            String sql = "DELETE FROM klienci WHERE id = ?";
+
+            try (Connection conn = DatabaseManager.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, id);
+                ps.executeUpdate();
+            }
+
+            // status 204 - sukces bez tresci
+            res.status(204);
+            return "";
+        });
+    }
+}

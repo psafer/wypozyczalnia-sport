@@ -21,6 +21,7 @@
         <li class="nav-item"><a class="nav-link" href="add-sprzet.html">Dodaj sprzęt</a></li>
         <li class="nav-item"><a class="nav-link" href="rezerwacje.html">Rezerwacje</a></li>
         <li class="nav-item"><a class="nav-link" href="add-rezerwacja.html">Dodaj rezerwację</a></li>
+        <li class="nav-item"><a class="nav-link" href="klienci.html">Klienci</a></li>
       </ul>
     </div>
   </div>
@@ -36,12 +37,18 @@
 
         <div class="mb-3">
             <label class="form-label">Wybierz sprzęt</label>
-            <select id="eqId" class="form-select" required></select>
+            <select id="eqId" class="form-select" required>
+                <option value="" selected disabled>Ładowanie sprzętu...</option>
+            </select>
             <div class="form-text text-muted" id="availability-hint">Wybierz sprzęt, aby sprawdzić dostępność.</div>
         </div>
+
         <div class="mb-3">
-            <label class="form-label">Użytkownik</label>
-            <input type="text" id="user" class="form-control" required>
+            <label for="clientSelect" class="form-label">Wybierz klienta</label>
+            <select class="form-select" id="clientSelect" required>
+                <option value="" selected disabled>Ładowanie klientów...</option>
+            </select>
+            <div class="form-text text-muted">Jeśli klienta nie ma na liście, dodaj go w zakładce "Klienci".</div>
         </div>
 
         <div class="row mb-3">
@@ -54,10 +61,11 @@
                 <label class="form-label">Data do</label>
                 <input type="date" id="to" class="form-control" required>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Ilość</label>
-                <input type="number" id="amount" class="form-control" value="1" min="1" required>
-            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Ilość</label>
+            <input type="number" id="amount" class="form-control" value="1" min="1" required>
         </div>
 
         <button class="btn btn-success w-100">Dodaj rezerwację</button>
@@ -72,24 +80,50 @@
         const errorDiv = document.getElementById("error-msg");
         errorDiv.textContent = message;
         errorDiv.classList.remove("d-none");
-        // Przewiń do góry, żeby użytkownik zobaczył błąd
         window.scrollTo(0, 0);
     }
 
-    // 1. Pobieranie sprzętu i ustawianie limitów
-    fetch("/sprzet").then(res => res.json()).then(data => {
-        const select = document.getElementById("eqId");
-        
-        data.forEach(eq => {
-            const option = document.createElement("option");
-            option.value = eq.id;
-            // ZAPISUJEMY DOSTĘPNĄ ILOŚĆ W ATRYBUCIE DATA
-            option.dataset.max = eq.quantity; 
-            option.textContent = eq.name + " (dostępne: " + eq.quantity + ")";
-            select.appendChild(option);
-        });
-    });
+    // 1. Pobieranie listy SPRZĘTU
+    fetch("/sprzet")
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById("eqId");
+            select.innerHTML = '<option value="" selected disabled>Wybierz sprzęt...</option>'; // Reset
+            
+            data.forEach(eq => {
+                const option = document.createElement("option");
+                option.value = eq.id;
+                option.dataset.max = eq.quantity; 
+                option.textContent = `${eq.name} (Dostępne: ${eq.quantity})`;
+                
+                if(eq.quantity <= 0) {
+                    option.disabled = true;
+                    option.textContent += " - BRAK";
+                }
+                
+                select.appendChild(option);
+            });
+        })
+        .catch(err => console.error("Błąd sprzętu:", err));
 
+    // 2. Pobieranie listy KLIENTÓW
+    fetch("/klienci")
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById("clientSelect");
+            select.innerHTML = '<option value="" selected disabled>Wybierz klienta...</option>'; // Reset
+
+            data.forEach(c => {
+                const option = document.createElement("option");
+                option.value = c.id;
+                option.textContent = `${c.firstName} ${c.lastName} (Dok: ${c.documentId})`;
+                select.appendChild(option);
+            });
+        })
+        .catch(err => console.error("Błąd klientów:", err));
+
+
+    // 3. Obsługa wysyłki formularza
     document.getElementById("rezForm").addEventListener("submit", function(e) {
         e.preventDefault();
         
@@ -98,26 +132,31 @@
 
         // Pobieranie danych z formularza
         const eqSelect = document.getElementById("eqId");
-        const selectedOption = eqSelect.options[eqSelect.selectedIndex];
+        const clientSelect = document.getElementById("clientSelect");
         
-        // Jeśli lista sprzętu jest pusta
-        if (!selectedOption) {
-            showError("Brak sprzętu do wyboru!");
+        const selectedEqOption = eqSelect.options[eqSelect.selectedIndex];
+        
+        // Walidacja wyboru
+        if (!selectedEqOption || !selectedEqOption.value) {
+            showError("Musisz wybrać sprzęt!");
+            return;
+        }
+        if (!clientSelect.value) {
+            showError("Musisz wybrać klienta!");
             return;
         }
 
-        const maxAvailable = parseInt(selectedOption.dataset.max);
+        const maxAvailable = parseInt(selectedEqOption.dataset.max);
         const amount = parseInt(document.getElementById("amount").value);
         const dateFromVal = document.getElementById("from").value;
         const dateToVal = document.getElementById("to").value;
+        
         const dateFrom = new Date(dateFromVal);
         const dateTo = new Date(dateToVal);
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        //walidacja
-
-  
+        // Walidacja logiki biznesowej
         if (amount <= 0) {
             showError("Ilość musi być większa niż 0.");
             return;
@@ -130,20 +169,21 @@
             showError("Data zwrotu nie może być wcześniejsza niż data wypożyczenia!");
             return;
         }
-
         if (dateFrom < today) {
              showError("Nie można robić rezerwacji wstecz!");
              return;
         }
 
+        // Przygotowanie obiektu JSON do wysyłki
         const data = {
             equipmentId: parseInt(eqSelect.value),
-            userName: document.getElementById("user").value,
+            clientId: parseInt(clientSelect.value),
             dateFrom: dateFromVal,
             dateTo: dateToVal,
             amount: amount
         };
 
+        // Wysyłanie do backendu
         fetch("/rezerwacje", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -154,12 +194,17 @@
                 alert("Rezerwacja dodana pomyślnie!");
                 window.location.href = "rezerwacje.html";
             } else {
-                showError("Wystąpił błąd serwera podczas dodawania rezerwacji.");
+                return response.text().then(text => { throw new Error(text) });
             }
         })
         .catch(err => {
             console.error(err);
-            showError("Nie udało się połączyć z serwerem.");
+            try {
+                const errObj = JSON.parse(err.message);
+                showError(errObj.error || "Wystąpił błąd serwera.");
+            } catch(e) {
+                showError("Wystąpił błąd podczas komunikacji z serwerem.");
+            }
         });
     });
 </script>

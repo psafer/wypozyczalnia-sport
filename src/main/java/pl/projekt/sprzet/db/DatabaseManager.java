@@ -18,7 +18,7 @@ public class DatabaseManager {
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement()) {
 
-            // tabela SPRZĘT
+            // 1. Tabela SPRZĘT
             stmt.execute("""
                         CREATE TABLE IF NOT EXISTS sprzet (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,23 +29,39 @@ public class DatabaseManager {
                         );
                     """);
 
-            // tabela REZERWACJE
+            // 2. Tabela REZERWACJE
             stmt.execute("""
                         CREATE TABLE IF NOT EXISTS rezerwacje (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             equipmentId INTEGER NOT NULL,
-                            userName TEXT NOT NULL,
+                            clientId TEXT NOT NULL,
                             dateFrom TEXT NOT NULL,
                             dateTo TEXT NOT NULL,
                             amount INTEGER NOT NULL DEFAULT 1
                         );
                     """);
 
-            // Dodanie przykładowych danych, jeśli tabela sprzet jest pusta
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) AS count FROM sprzet");
-            int count = rs.getInt("count");
+            // 3. Tabela KLIENCI
+            stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS klienci (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            firstName TEXT NOT NULL,
+                            lastName TEXT NOT NULL,
+                            phone TEXT,
+                            documentId TEXT NOT NULL UNIQUE
+                        );
+                    """);
 
-            if (count == 0) {
+            // nicjalizacja danych sprzęt
+            // Sprawdzamy czy tabela jest pusta
+            ResultSet rsSprzet = stmt.executeQuery("SELECT COUNT(*) AS count FROM sprzet");
+            int countSprzet = 0;
+            if (rsSprzet.next()) {
+                countSprzet = rsSprzet.getInt("count");
+            }
+            rsSprzet.close(); // Zamykamy ResultSet przed kolejnym zapytaniem
+
+            if (countSprzet == 0) {
                 stmt.execute(
                         "INSERT INTO sprzet (name, type, available, quantity) VALUES ('Rower górski', 'Bike', 1, 5)");
                 stmt.execute(
@@ -60,11 +76,44 @@ public class DatabaseManager {
                 System.out.println("Dodano przykładowy sprzęt do bazy.");
             }
 
+            // inicjalizacja danych klienci
+            // Sprawdzamy czy tabela klientów jest pusta
+            ResultSet rsKlienci = stmt.executeQuery("SELECT COUNT(*) AS count FROM klienci");
+            int countKlienci = 0;
+            if (rsKlienci.next()) {
+                countKlienci = rsKlienci.getInt("count");
+            }
+            rsKlienci.close();
+
+            if (countKlienci == 0) {
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Jan', 'Kowalski', '111-222-333', 'ABC123456')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Anna', 'Nowak', '222-333-444', 'DEF234567')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Piotr', 'Wiśniewski', '333-444-555', 'GHI345678')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Maria', 'Wójcik', '444-555-666', 'JKL456789')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Krzysztof', 'Kowalczyk', '555-666-777', 'MNO567890')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Agnieszka', 'Kamińska', '666-777-888', 'PQR678901')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Tomasz', 'Lewandowski', '777-888-999', 'STU789012')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Ewa', 'Zielińska', '888-999-000', 'VWX890123')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Michał', 'Szymański', '999-000-111', 'YZA901234')");
+                stmt.execute(
+                        "INSERT INTO klienci (firstName, lastName, phone, documentId) VALUES ('Karolina', 'Woźniak', '000-111-222', 'BCD012345')");
+
+                System.out.println("Dodano 10 przykładowych klientów do bazy.");
+            }
+
             System.out.println("Baza danych gotowa.");
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
 }

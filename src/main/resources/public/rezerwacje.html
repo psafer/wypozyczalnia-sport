@@ -21,6 +21,7 @@
         <li class="nav-item"><a class="nav-link" href="add-sprzet.html">Dodaj sprzęt</a></li>
         <li class="nav-item"><a class="nav-link" href="rezerwacje.html">Rezerwacje</a></li>
         <li class="nav-item"><a class="nav-link" href="add-rezerwacja.html">Dodaj rezerwację</a></li>
+        <li class="nav-item"><a class="nav-link active" href="klienci.html">Klienci</a></li>
       </ul>
     </div>
   </div>
@@ -59,7 +60,7 @@ function loadReservations() {
                     <tr>
                         <td>${r.id}</td>
                         <td>${r.equipmentName}</td>
-                        <td>${r.userName}</td>
+                        <td>${r.clientId}</td>
                         <td>${r.dateFrom}</td>
                         <td>${r.dateTo}</td>
                         <td>${r.amount}</td>

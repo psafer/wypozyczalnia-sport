@@ -16,15 +16,15 @@ public class EquipmentController {
 
     public static void initRoutes() {
 
-        // GET /sprzet  (lista)
+        // GET /sprzet (lista)
         get("/sprzet", (req, res) -> {
             res.type("application/json");
 
             List<Equipment> list = new ArrayList<>();
 
             try (Connection conn = DatabaseManager.getConnection();
-                 Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT * FROM sprzet")) {
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM sprzet")) {
 
                 while (rs.next()) {
                     list.add(new Equipment(
@@ -32,15 +32,14 @@ public class EquipmentController {
                             rs.getString("name"),
                             rs.getString("type"),
                             rs.getInt("available") == 1,
-                            rs.getInt("quantity")
-                    ));
+                            rs.getInt("quantity")));
                 }
             }
 
             return gson.toJson(list);
         });
 
-        // GET /sprzet/:id  (pojedynczy rekord)
+        // GET /sprzet/:id (pojedynczy rekord)
         get("/sprzet/:id", (req, res) -> {
             res.type("application/json");
             int id = Integer.parseInt(req.params("id"));
@@ -48,7 +47,7 @@ public class EquipmentController {
             Equipment eq = null;
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement("SELECT * FROM sprzet WHERE id = ?")) {
+                    PreparedStatement ps = conn.prepareStatement("SELECT * FROM sprzet WHERE id = ?")) {
 
                 ps.setInt(1, id);
                 ResultSet rs = ps.executeQuery();
@@ -59,24 +58,23 @@ public class EquipmentController {
                             rs.getString("name"),
                             rs.getString("type"),
                             rs.getInt("available") == 1,
-                            rs.getInt("quantity")
-                    );
+                            rs.getInt("quantity"));
                 }
             }
 
             return eq != null ? gson.toJson(eq) : "{}";
         });
 
-        // POST /sprzet  (dodawanie)
+        // POST /sprzet (dodawanie)
         post("/sprzet", (req, res) -> {
             res.type("application/json");
 
             Equipment eq = gson.fromJson(req.body(), Equipment.class);
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO sprzet (name, type, available) VALUES (?, ?, ?)", 
-                        Statement.RETURN_GENERATED_KEYS)) {
+                    PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO sprzet (name, type, available) VALUES (?, ?, ?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
 
                 ps.setString(1, eq.getName());
                 ps.setString(2, eq.getType());
@@ -93,7 +91,7 @@ public class EquipmentController {
             return gson.toJson(eq);
         });
 
-        // PUT /sprzet/:id  (edycja)
+        // PUT /sprzet/:id (edycja)
 
         put("/sprzet/:id", (req, res) -> {
             res.type("application/json");
@@ -102,8 +100,8 @@ public class EquipmentController {
             Equipment eq = gson.fromJson(req.body(), Equipment.class);
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE sprzet SET name = ?, type = ?, available = ? WHERE id = ?")) {
+                    PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE sprzet SET name = ?, type = ?, available = ? WHERE id = ?")) {
 
                 ps.setString(1, eq.getName());
                 ps.setString(2, eq.getType());
@@ -116,12 +114,12 @@ public class EquipmentController {
             return "{\"status\":\"updated\"}";
         });
 
-        // DELETE /sprzet/:id  (usuwanie)
+        // DELETE /sprzet/:id (usuwanie)
         delete("/sprzet/:id", (req, res) -> {
             int id = Integer.parseInt(req.params("id"));
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement("DELETE FROM sprzet WHERE id = ?")) {
+                    PreparedStatement ps = conn.prepareStatement("DELETE FROM sprzet WHERE id = ?")) {
 
                 ps.setInt(1, id);
                 ps.executeUpdate();
