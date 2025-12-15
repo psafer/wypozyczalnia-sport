@@ -11,14 +11,10 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.html">Wypożyczalnia</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="sprzet.html">Sprzęt</a></li>
-        <li class="nav-item"><a class="nav-link" href="add-sprzet.html">Dodaj sprzęt</a></li>
+        <li class="nav-item"><a class="nav-link active" href="add-sprzet.html">Dodaj sprzęt</a></li>
         <li class="nav-item"><a class="nav-link" href="rezerwacje.html">Rezerwacje</a></li>
         <li class="nav-item"><a class="nav-link" href="add-rezerwacja.html">Dodaj rezerwację</a></li>
         <li class="nav-item"><a class="nav-link" href="klienci.html">Klienci</a></li>
@@ -26,7 +22,6 @@
     </div>
   </div>
 </nav>
-
 
 <div class="container mt-3">
 
@@ -36,33 +31,51 @@
 
         <div class="mb-3">
             <label class="form-label">Nazwa</label>
-            <input id="name" class="form-control">
+            <input id="name" class="form-control" required>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Typ</label>
-            <input id="type" class="form-control">
+            <input id="type" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Ilość początkowa</label>
+            <input id="quantity"
+                   type="number"
+                   class="form-control"
+                   min="1"
+                   value="1"
+                   required>
         </div>
 
         <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" id="available">
+            <input class="form-check-input" type="checkbox" id="available" checked>
             <label class="form-check-label">Dostępny</label>
         </div>
 
-        <button class="btn btn-success w-100">Dodaj</button>
+        <button class="btn btn-success w-100">Dodaj sprzęt</button>
 
     </form>
 
 </div>
 
 <script>
-document.getElementById("sprzetForm").onsubmit = (e) => {
+document.getElementById("sprzetForm").addEventListener("submit", e => {
     e.preventDefault();
+
+    const quantity = parseInt(document.getElementById("quantity").value);
+
+    if (!quantity || quantity <= 0) {
+        alert("Ilość musi być większa niż 0");
+        return;
+    }
 
     const data = {
         name: document.getElementById("name").value,
         type: document.getElementById("type").value,
-        available: document.getElementById("available").checked
+        available: document.getElementById("available").checked,
+        quantity: quantity
     };
 
     fetch("/sprzet", {
@@ -70,11 +83,13 @@ document.getElementById("sprzetForm").onsubmit = (e) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
     })
-    .then(() => {
+    .then(res => {
+        if (!res.ok) throw new Error();
         alert("Dodano sprzęt!");
         window.location.href = "sprzet.html";
-    });
-};
+    })
+    .catch(() => alert("Nie udało się dodać sprzętu"));
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

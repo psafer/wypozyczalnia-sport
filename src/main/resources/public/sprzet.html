@@ -5,68 +5,171 @@
     <title>Lista sprzętu</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+<!-- Modal dodawania sprzętu -->
+<div class="modal fade" id="addStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Dodaj sprzęt na stan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="modalEquipmentId">
+
+        <div class="mb-3">
+          <label class="form-label">Ilość do dodania</label>
+          <input type="number"
+                 id="modalAmount"
+                 class="form-control"
+                 min="1"
+                 placeholder="np. 5">
+        </div>
+
+        <div id="modalError" class="alert alert-danger d-none"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+        <button class="btn btn-primary" onclick="confirmAddStock()">Dodaj</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <body class="bg-light">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.html">Wypożyczalnia</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="sprzet.html">Sprzęt</a></li>
+        <li class="nav-item"><a class="nav-link active" href="sprzet.html">Sprzęt</a></li>
         <li class="nav-item"><a class="nav-link" href="add-sprzet.html">Dodaj sprzęt</a></li>
         <li class="nav-item"><a class="nav-link" href="rezerwacje.html">Rezerwacje</a></li>
         <li class="nav-item"><a class="nav-link" href="add-rezerwacja.html">Dodaj rezerwację</a></li>
-        <li class="nav-item"><a class="nav-link active" href="klienci.html">Klienci</a></li>
+        <li class="nav-item"><a class="nav-link" href="klienci.html">Klienci</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
-
-<div class="container mt-3">
+<div class="container">
 
     <h1 class="mb-4">Lista sprzętu</h1>
 
-    <table class="table table-hover table-bordered">
+    <table class="table table-hover table-bordered align-middle">
         <thead class="table-dark">
             <tr>
                 <th>ID</th>
                 <th>Nazwa</th>
                 <th>Typ</th>
-                <th>Dostępność</th>
+                <th>Na stanie</th>
+                <th>Łącznie</th>
+                <th>Status</th>
+                <th>Akcja</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
+
 </div>
 
 <script>
-fetch("/sprzet")
-    .then(res => res.json())
-    .then(data => {
-        const tbody = document.getElementById("tableBody");
+function loadEquipment() {
+    fetch("/sprzet")
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
 
-        data.forEach(eq => {
-            const badge = eq.available
-                ? "<span class='badge bg-success'>Dostępny</span>"
-                : "<span class='badge bg-danger'>Niedostępny</span>";
+            data.forEach(eq => {
+                const statusBadge = eq.quantity > 0
+                    ? "<span class='badge bg-success'>Dostępny</span>"
+                    : "<span class='badge bg-danger'>Brak</span>";
 
-            const row = `
-                <tr>
-                    <td>${eq.id}</td>
-                    <td>${eq.name}</td>
-                    <td>${eq.type}</td>
-                    <td>${badge}</td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
+                const row = `
+                    <tr>
+                        <td>${eq.id}</td>
+                        <td>${eq.name}</td>
+                        <td>${eq.type}</td>
+                        <td>${eq.quantity}</td>
+                        <td>${eq.totalQuantity}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary"
+                                onclick="openAddStockModal(${eq.id})">
+                                + Dodaj
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
         });
+}
+let addStockModal;
+
+document.addEventListener("DOMContentLoaded", () => {
+    addStockModal = new bootstrap.Modal(
+        document.getElementById("addStockModal")
+    );
+});
+
+function openAddStockModal(id) {
+    document.getElementById("modalEquipmentId").value = id;
+    document.getElementById("modalAmount").value = "";
+    document.getElementById("modalError").classList.add("d-none");
+    addStockModal.show();
+}
+
+function confirmAddStock() {
+    const id = document.getElementById("modalEquipmentId").value;
+    const amount = parseInt(document.getElementById("modalAmount").value);
+    const errorDiv = document.getElementById("modalError");
+
+    if (!amount || amount <= 0) {
+        errorDiv.textContent = "Podaj poprawną ilość (> 0)";
+        errorDiv.classList.remove("d-none");
+        return;
+    }
+
+    fetch(`/sprzet/${id}/add-stock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error();
+        addStockModal.hide();
+        loadEquipment();
+    })
+    .catch(() => {
+        errorDiv.textContent = "Nie udało się dodać sprzętu";
+        errorDiv.classList.remove("d-none");
     });
+}
+
+function addStock(id) {
+    const amount = prompt("Ile sztuk dodać?");
+    if (!amount || amount <= 0) return;
+
+    fetch(`/sprzet/${id}/add-stock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: parseInt(amount) })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Błąd aktualizacji");
+        loadEquipment();
+    })
+    .catch(() => alert("Nie udało się dodać sprzętu"));
+}
+
+loadEquipment();
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
