@@ -9,10 +9,11 @@ public class Reservation {
     private String dateTo;
     private int amount;
     private String equipmentName;
+    private String status;
+
 
     // Konstruktor
-    public Reservation(int id, int equipmentId, int clientId, String clientName, String dateFrom, String dateTo,
-            int amount) {
+    public Reservation(int id, int equipmentId, int clientId, String clientName, String dateFrom, String dateTo,int amount, String status) {
         this.id = id;
         this.equipmentId = equipmentId;
         this.clientId = clientId;
@@ -20,9 +21,14 @@ public class Reservation {
         this.dateFrom = dateFrom;
         this.dateTo = dateTo;
         this.amount = amount;
+        this.status = status;
     }
 
     // Gettery i Settery
+    public String getStatus() {
+        return status;
+    }
+
     public int getId() {
         return id;
     }
@@ -69,5 +75,8 @@ public class Reservation {
 
     public void setId(int id) {
         this.id = id;
+    }
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

@@ -15,32 +15,34 @@ public class ReservationController {
     private static final Gson gson = new Gson();
 
     public static void initRoutes() {
-        // Obsługa nieprzewidzianych błędów
+
+        // Globalny handler błędów
         exception(Exception.class, (e, req, res) -> {
             e.printStackTrace();
             res.status(500);
-            res.body("Wystąpił błąd serwera: " + e.getMessage());
+            res.body("{\"error\":\"" + e.getMessage() + "\"}");
         });
 
-        // GET /rezerwacje — lista wszystkich rezerwacji
+        /* =======================
+           GET /rezerwacje
+           ======================= */
         get("/rezerwacje", (req, res) -> {
             res.type("application/json");
 
             List<Reservation> list = new ArrayList<>();
 
-            // ZŁĄCZENIE TRZECH TABEL: Rezerwacje + Sprzęt + Klienci
             String sql = """
-                        SELECT r.id, r.equipmentId, r.clientId, r.dateFrom, r.dateTo, r.amount,
-                               e.name AS equipmentName,
-                               k.firstName || ' ' || k.lastName AS clientName
-                        FROM rezerwacje r
-                        LEFT JOIN sprzet e ON r.equipmentId = e.id
-                        LEFT JOIN klienci k ON r.clientId = k.id
-                    """;
+                SELECT r.id, r.equipmentId, r.clientId, r.dateFrom, r.dateTo, r.amount, r.status,
+                       e.name AS equipmentName,
+                       k.firstName || ' ' || k.lastName AS clientName
+                FROM rezerwacje r
+                LEFT JOIN sprzet e ON r.equipmentId = e.id
+                LEFT JOIN klienci k ON r.clientId = k.id
+            """;
 
             try (Connection conn = DatabaseManager.getConnection();
-                    Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery(sql)) {
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
 
                 while (rs.next()) {
                     Reservation r = new Reservation(
@@ -50,10 +52,11 @@ public class ReservationController {
                             rs.getString("clientName"),
                             rs.getString("dateFrom"),
                             rs.getString("dateTo"),
-                            rs.getInt("amount"));
+                            rs.getInt("amount"),
+                            rs.getString("status")
+                    );
 
                     r.setEquipmentName(rs.getString("equipmentName"));
-
                     list.add(r);
                 }
             }
@@ -61,7 +64,9 @@ public class ReservationController {
             return gson.toJson(list);
         });
 
-        // POST /rezerwacje — dodawanie nowej rezerwacji
+        /* =======================
+           POST /rezerwacje
+           ======================= */
         post("/rezerwacje", (req, res) -> {
             res.type("application/json");
 
@@ -69,10 +74,12 @@ public class ReservationController {
             Connection conn = DatabaseManager.getConnection();
 
             try {
-                // 1. Sprawdzenie czy sprzęt istnieje i czy jest go dość
-                PreparedStatement check = conn.prepareStatement(
-                        "SELECT quantity FROM sprzet WHERE id = ?");
+                conn.setAutoCommit(false);
 
+                // 1. Sprawdzenie dostępności
+                PreparedStatement check = conn.prepareStatement(
+                        "SELECT quantity FROM sprzet WHERE id = ?"
+                );
                 check.setInt(1, r.getEquipmentId());
                 ResultSet rs = check.executeQuery();
 
@@ -82,23 +89,28 @@ public class ReservationController {
                 }
 
                 int available = rs.getInt("quantity");
-
                 if (available < r.getAmount()) {
                     res.status(400);
                     return "{\"error\":\"Niewystarczająca ilość sprzętu\"}";
                 }
 
-                // 2. Zmniejszamy ilość sprzętu w magazynie
+                // 2. Zmniejszenie ilości sprzętu
                 PreparedStatement update = conn.prepareStatement(
-                        "UPDATE sprzet SET quantity = quantity - ? WHERE id = ?");
+                        "UPDATE sprzet SET quantity = quantity - ? WHERE id = ?"
+                );
                 update.setInt(1, r.getAmount());
                 update.setInt(2, r.getEquipmentId());
                 update.executeUpdate();
 
-                // 3. Tworzymy rezerwację (z clientId jako int)
+                // 3. Insert rezerwacji
                 PreparedStatement insert = conn.prepareStatement(
-                        "INSERT INTO rezerwacje (equipmentId, clientId, dateFrom, dateTo, amount) VALUES (?, ?, ?, ?, ?)",
-                        Statement.RETURN_GENERATED_KEYS);
+                        """
+                        INSERT INTO rezerwacje 
+                        (equipmentId, clientId, dateFrom, dateTo, amount, status)
+                        VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+                        """,
+                        Statement.RETURN_GENERATED_KEYS
+                );
 
                 insert.setInt(1, r.getEquipmentId());
                 insert.setInt(2, r.getClientId());
@@ -112,36 +124,31 @@ public class ReservationController {
                     r.setId(keys.getInt(1));
                 }
 
-                r.setClientName("");
+                r.setStatus("ACTIVE");
+
+                conn.commit();
+                res.status(201);
+                return gson.toJson(r);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                conn.rollback();
                 res.status(500);
-                return "{\"error\":\"Błąd bazy danych\"}";
+                return "{\"error\":\"Błąd zapisu rezerwacji\"}";
             } finally {
-
-                if (conn != null)
-                    conn.close();
+                conn.close();
             }
-
-            res.status(201);
-            return gson.toJson(r);
         });
 
-        // DELETE /rezerwacje/:id
+        /* =======================
+           DELETE /rezerwacje/:id
+           ======================= */
         delete("/rezerwacje/:id", (req, res) -> {
-            String idParam = req.params(":id");
-            int id;
-
-            try {
-                id = Integer.parseInt(idParam);
-            } catch (NumberFormatException e) {
-                res.status(400);
-                return "Nieprawidłowe ID";
-            }
+            int id = Integer.parseInt(req.params(":id"));
 
             try (Connection conn = DatabaseManager.getConnection();
-                    PreparedStatement ps = conn.prepareStatement("DELETE FROM rezerwacje WHERE id = ?")) {
+                 PreparedStatement ps = conn.prepareStatement(
+                         "DELETE FROM rezerwacje WHERE id = ?"
+                 )) {
 
                 ps.setInt(1, id);
                 ps.executeUpdate();
@@ -150,5 +157,66 @@ public class ReservationController {
             res.status(204);
             return "";
         });
+        /* =======================
+        POST /rezerwacje/:id/zwrot
+        ======================= */
+        post("/rezerwacje/:id/zwrot", (req, res) -> {
+            res.type("application/json");
+            int id = Integer.parseInt(req.params(":id"));
+
+            try (Connection conn = DatabaseManager.getConnection()) {
+                conn.setAutoCommit(false);
+
+                // 1. Pobierz rezerwację
+                PreparedStatement ps = conn.prepareStatement("""
+                    SELECT equipmentId, amount, status
+                    FROM rezerwacje
+                    WHERE id = ?
+                """);
+                ps.setInt(1, id);
+                ResultSet rs = ps.executeQuery();
+
+                if (!rs.next()) {
+                    res.status(404);
+                    return "{\"error\":\"Rezerwacja nie istnieje\"}";
+                }
+
+                if (!"ACTIVE".equals(rs.getString("status"))) {
+                    res.status(400);
+                    return "{\"error\":\"Rezerwacja już została zwrócona\"}";
+                }
+
+                int equipmentId = rs.getInt("equipmentId");
+                int amount = rs.getInt("amount");
+
+                // 2. Oddaj sprzęt do puli
+                PreparedStatement updateEq = conn.prepareStatement("""
+                    UPDATE sprzet
+                    SET quantity = quantity + ?
+                    WHERE id = ?
+                """);
+                updateEq.setInt(1, amount);
+                updateEq.setInt(2, equipmentId);
+                updateEq.executeUpdate();
+
+                // 3. Zmień status rezerwacji
+                PreparedStatement updateRez = conn.prepareStatement("""
+                    UPDATE rezerwacje
+                    SET status = 'RETURNED'
+                    WHERE id = ?
+                """);
+                updateRez.setInt(1, id);
+                updateRez.executeUpdate();
+
+                conn.commit();
+                return "{\"status\":\"returned\"}";
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return "{\"error\":\"Błąd zwrotu\"}";
+            }
+        });
+
     }
 }

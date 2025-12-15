@@ -21,35 +21,37 @@ public class DatabaseManager {
             // 1. Tabela SPRZĘT
             stmt.execute("""
                         CREATE TABLE IF NOT EXISTS sprzet (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            name TEXT NOT NULL,
-                            type TEXT NOT NULL,
-                            available INTEGER NOT NULL,
-                            quantity INTEGER NOT NULL DEFAULT 1
-                        );
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        available INTEGER NOT NULL,
+                        quantity INTEGER NOT NULL DEFAULT 1
+                    );
                     """);
 
             // 2. Tabela REZERWACJE
             stmt.execute("""
                         CREATE TABLE IF NOT EXISTS rezerwacje (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            equipmentId INTEGER NOT NULL,
-                            clientId TEXT NOT NULL,
-                            dateFrom TEXT NOT NULL,
-                            dateTo TEXT NOT NULL,
-                            amount INTEGER NOT NULL DEFAULT 1
+                               id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                equipmentId INTEGER NOT NULL,
+                                clientId INTEGER NOT NULL,
+                                dateFrom TEXT NOT NULL,
+                                dateTo TEXT NOT NULL,
+                                amount INTEGER NOT NULL,
+                                FOREIGN KEY (equipmentId) REFERENCES sprzet(id),
+                                FOREIGN KEY (clientId) REFERENCES klienci(id)
                         );
                     """);
 
             // 3. Tabela KLIENCI
             stmt.execute("""
                         CREATE TABLE IF NOT EXISTS klienci (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            firstName TEXT NOT NULL,
-                            lastName TEXT NOT NULL,
-                            phone TEXT,
-                            documentId TEXT NOT NULL UNIQUE
-                        );
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        firstName TEXT NOT NULL,
+                        lastName TEXT NOT NULL,
+                        phone TEXT,
+                        documentId TEXT NOT NULL UNIQUE
+                    );
                     """);
 
             // nicjalizacja danych sprzęt
@@ -109,7 +111,12 @@ public class DatabaseManager {
 
                 System.out.println("Dodano 10 przykładowych klientów do bazy.");
             }
-
+            try {
+                stmt.execute("ALTER TABLE rezerwacje ADD COLUMN status TEXT DEFAULT 'ACTIVE'");
+                System.out.println("Dodano status rezerwacji do bazy danych.");
+            } catch (SQLException ignored) {
+                // kolumna już istnieje
+            }
             System.out.println("Baza danych gotowa.");
 
         } catch (SQLException e) {

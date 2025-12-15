@@ -73,7 +73,7 @@ public class EquipmentController {
 
             try (Connection conn = DatabaseManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO sprzet (name, type, available) VALUES (?, ?, ?)",
+                            "INSERT INTO sprzet (name, type, available, quantity) VALUES (?, ?, ?)",
                             Statement.RETURN_GENERATED_KEYS)) {
 
                 ps.setString(1, eq.getName());

@@ -2,13 +2,13 @@ package pl.projekt.sprzet;
 
 import static spark.Spark.*;
 
-import org.eclipse.jetty.io.ClientConnectionFactory;
+//import org.eclipse.jetty.io.ClientConnectionFactory;
 
 import pl.projekt.sprzet.api.ClientController;
 import pl.projekt.sprzet.api.EquipmentController;
 import pl.projekt.sprzet.api.ReservationController;
 import pl.projekt.sprzet.db.DatabaseManager;
-import pl.projekt.sprzet.view.ViewController;
+
 
 public class App {
     public static void main(String[] args) {
@@ -18,7 +18,6 @@ public class App {
         DatabaseManager.initDatabase();
 
         EquipmentController.initRoutes();
-        ViewController.initViews();
         ReservationController.initRoutes();
         ClientController.initRoutes();
 
