@@ -3,6 +3,7 @@ package pl.projekt.sprzet.api;
 import com.google.gson.Gson;
 import pl.projekt.sprzet.db.DatabaseManager;
 import pl.projekt.sprzet.model.Client;
+import pl.projekt.sprzet.model.Reservation;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -111,6 +112,48 @@ public class ClientController {
             // status 204 - sukces bez tresci
             res.status(204);
             return "";
+        });
+
+        // get /klienci/:id/history - pobranie historii wypożyczeń klienta
+        get("/klienci/:id/history", (req, res) -> {
+            res.type("application/json");
+            int clientId = Integer.parseInt(req.params("id"));
+            List<Reservation> history = new ArrayList<>();
+
+            String sql = """
+                SELECT r.id, r.equipmentId, r.clientId, r.dateFrom, r.dateTo, r.amount, r.status,
+                       s.name AS equipmentName,
+                       k.firstName || ' ' || k.lastName AS clientName
+                FROM rezerwacje r
+                JOIN sprzet s ON r.equipmentId = s.id
+                JOIN klienci k ON r.clientId = k.id
+                WHERE r.clientId = ?
+                ORDER BY r.dateFrom DESC
+            """;
+
+            try (Connection conn = DatabaseManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, clientId);
+                ResultSet rs = ps.executeQuery();
+
+                while (rs.next()) {
+                    Reservation rez = new Reservation(
+                        rs.getInt("id"),
+                        rs.getInt("equipmentId"),
+                        rs.getInt("clientId"),
+                        rs.getString("clientName"),
+                        rs.getString("dateFrom"),
+                        rs.getString("dateTo"),
+                        rs.getInt("amount"),
+                        rs.getString("status")
+                    );
+                    rez.setEquipmentName(rs.getString("equipmentName"));
+                    
+                    history.add(rez);
+                }
+            }
+            return gson.toJson(history);
         });
     }
 }
