@@ -5,15 +5,16 @@ public class Reservation {
     private int equipmentId;
     private int clientId;
     private String clientName;
+    private String equipmentName;
     private String dateFrom;
     private String dateTo;
     private int amount;
-    private String equipmentName;
     private String status;
-
+    private double totalCost;
 
     // Konstruktor
-    public Reservation(int id, int equipmentId, int clientId, String clientName, String dateFrom, String dateTo,int amount, String status) {
+    public Reservation(int id, int equipmentId, int clientId, String clientName, String dateFrom, String dateTo,
+            int amount, String status) {
         this.id = id;
         this.equipmentId = equipmentId;
         this.clientId = clientId;
@@ -24,13 +25,21 @@ public class Reservation {
         this.status = status;
     }
 
-    // Gettery i Settery
-    public String getStatus() {
-        return status;
+    // GETTERY I SETTERY
+    public double getTotalCost() {
+        return totalCost;
+    }
+
+    public void setTotalCost(double totalCost) {
+        this.totalCost = totalCost;
     }
 
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public int getEquipmentId() {
@@ -39,18 +48,6 @@ public class Reservation {
 
     public int getClientId() {
         return clientId;
-    } // Getter do ID
-
-    public void setClientId(int clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getClientName() {
-        return clientName;
-    } // Getter do nazwy
-
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
     }
 
     public String getDateFrom() {
@@ -65,18 +62,19 @@ public class Reservation {
         return amount;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public String getEquipmentName() {
         return equipmentName;
     }
 
-    public void setEquipmentName(String name) {
-        this.equipmentName = name;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-    public void setStatus(String status) {
-        this.status = status;
+    public void setEquipmentName(String equipmentName) {
+        this.equipmentName = equipmentName;
     }
 }

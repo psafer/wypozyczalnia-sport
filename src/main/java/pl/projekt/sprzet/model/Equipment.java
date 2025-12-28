@@ -1,31 +1,34 @@
 package pl.projekt.sprzet.model;
 
 public class Equipment {
-
     private int id;
     private String name;
     private String type;
     private boolean available;
-    private int quantity;       // ilość aktualnie dostępna
-    private int totalQuantity;  // ilość całkowita
+    private int quantity;
+    private int totalQuantity;
+    private double pricePerDay;
 
-    // GŁÓWNY konstruktor
-    public Equipment(int id, String name, String type, boolean available, int quantity, int totalQuantity) {
+    public Equipment(int id, String name, String type, boolean available, int quantity, int totalQuantity,
+            double pricePerDay) {
         this.id = id;
         this.name = name;
         this.type = type;
         this.available = available;
         this.quantity = quantity;
         this.totalQuantity = totalQuantity;
+        this.pricePerDay = pricePerDay;
     }
 
-    // DODATKOWY konstruktor (kompatybilność wsteczna)
-    // Jeśli totalQuantity nie jest podane → przyjmujemy quantity
-    public Equipment(int id, String name, String type, boolean available, int quantity) {
-        this(id, name, type, available, quantity, quantity);
+    // Gettery i Settery
+    public double getPricePerDay() {
+        return pricePerDay;
     }
 
-    // GETTERY
+    public void setPricePerDay(double pricePerDay) {
+        this.pricePerDay = pricePerDay;
+    }
+
     public int getId() {
         return id;
     }
@@ -50,7 +53,6 @@ public class Equipment {
         return totalQuantity;
     }
 
-    // SETTERY
     public void setId(int id) {
         this.id = id;
     }

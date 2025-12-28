@@ -31,30 +31,31 @@
 
         <div class="mb-3">
             <label class="form-label">Nazwa</label>
-            <input id="name" class="form-control" required>
+            <input id="name" class="form-control" placeholder="np. Rower górski" required>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Typ</label>
-            <input id="type" class="form-control" required>
+            <input id="type" class="form-control" placeholder="np. Bike" required>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Ilość początkowa</label>
-            <input id="quantity"
-                   type="number"
-                   class="form-control"
-                   min="1"
-                   value="1"
-                   required>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Ilość początkowa</label>
+                <input id="quantity" type="number" class="form-control" min="1" value="1" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Cena za dobę (PLN)</label>
+                <input id="pricePerDay" type="number" step="0.01" class="form-control" min="0" value="10.00" required>
+            </div>
         </div>
 
         <div class="form-check mb-4">
             <input class="form-check-input" type="checkbox" id="available" checked>
-            <label class="form-check-label">Dostępny</label>
+            <label class="form-check-label">Dostępny do wypożyczenia</label>
         </div>
 
-        <button class="btn btn-success w-100">Dodaj sprzęt</button>
+        <button class="btn btn-success w-100">Dodaj sprzęt do bazy</button>
 
     </form>
 
@@ -65,17 +66,14 @@ document.getElementById("sprzetForm").addEventListener("submit", e => {
     e.preventDefault();
 
     const quantity = parseInt(document.getElementById("quantity").value);
-
-    if (!quantity || quantity <= 0) {
-        alert("Ilość musi być większa niż 0");
-        return;
-    }
+    const price = parseFloat(document.getElementById("pricePerDay").value);
 
     const data = {
         name: document.getElementById("name").value,
         type: document.getElementById("type").value,
         available: document.getElementById("available").checked,
-        quantity: quantity
+        quantity: quantity,
+        pricePerDay: price // Przekazanie nowej kolumny do backendu
     };
 
     fetch("/sprzet", {
@@ -88,7 +86,7 @@ document.getElementById("sprzetForm").addEventListener("submit", e => {
         alert("Dodano sprzęt!");
         window.location.href = "sprzet.html";
     })
-    .catch(() => alert("Nie udało się dodać sprzętu"));
+    .catch(() => alert("Nie udało się dodać sprzętu. Sprawdź połączenie z serwerem."));
 });
 </script>
 

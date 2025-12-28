@@ -16,80 +16,60 @@ public class EquipmentController {
 
     public static void initRoutes() {
 
-        /* =======================
-           GET /sprzet
-           ======================= */
+        /*
+         * =======================
+         * GET /sprzet
+         * =======================
+         */
         get("/sprzet", (req, res) -> {
             res.type("application/json");
             List<Equipment> list = new ArrayList<>();
-
-            String sql = """
-                SELECT id, name, type, quantity, totalQuantity
-                FROM sprzet
-            """;
-
             try (Connection conn = DatabaseManager.getConnection();
-                 Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM sprzet")) {
                 while (rs.next()) {
-                    int quantity = rs.getInt("quantity");
-
                     list.add(new Equipment(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            rs.getString("type"),
-                            quantity > 0,
-                            quantity,
-                            rs.getInt("totalQuantity")
-                    ));
+                            rs.getInt("id"), rs.getString("name"), rs.getString("type"),
+                            rs.getInt("quantity") > 0, rs.getInt("quantity"),
+                            rs.getInt("totalQuantity"), rs.getDouble("pricePerDay")));
                 }
             }
-
             return gson.toJson(list);
         });
 
-        /* =======================
-           POST /sprzet
-           ======================= */
+        /*
+         * =======================
+         * POST /sprzet
+         * =======================
+         */
         post("/sprzet", (req, res) -> {
             res.type("application/json");
-
             Equipment eq = gson.fromJson(req.body(), Equipment.class);
-
             try (Connection conn = DatabaseManager.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                    """
-                    INSERT INTO sprzet (name, type, available, quantity, totalQuantity)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    Statement.RETURN_GENERATED_KEYS
-                )) {
-
+                    PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO sprzet (name, type, available, quantity, totalQuantity, pricePerDay) VALUES (?, ?, ?, ?, ?, ?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, eq.getName());
                 ps.setString(2, eq.getType());
                 ps.setInt(3, eq.isAvailable() ? 1 : 0);
-
-                int qty = eq.getQuantity() > 0 ? eq.getQuantity() : 1;
-                ps.setInt(4, qty);
-                ps.setInt(5, qty);
-
+                ps.setInt(4, eq.getQuantity());
+                ps.setInt(5, eq.getQuantity());
+                ps.setDouble(6, eq.getPricePerDay());
                 ps.executeUpdate();
 
                 ResultSet keys = ps.getGeneratedKeys();
-                if (keys.next()) {
+                if (keys.next())
                     eq.setId(keys.getInt(1));
-                }
             }
-
             res.status(201);
             return gson.toJson(eq);
         });
 
-
-        /* =======================
-           POST /sprzet/:id/add-stock
-           ======================= */
+        /*
+         * =======================
+         * POST /sprzet/:id/add-stock
+         * =======================
+         */
         post("/sprzet/:id/add-stock", (req, res) -> {
             res.type("application/json");
             int id = Integer.parseInt(req.params(":id"));
@@ -103,14 +83,14 @@ public class EquipmentController {
             }
 
             String sql = """
-                UPDATE sprzet
-                SET quantity = quantity + ?,
-                    totalQuantity = totalQuantity + ?
-                WHERE id = ?
-            """;
+                        UPDATE sprzet
+                        SET quantity = quantity + ?,
+                            totalQuantity = totalQuantity + ?
+                        WHERE id = ?
+                    """;
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setInt(1, amount);
                 ps.setInt(2, amount);
@@ -126,15 +106,16 @@ public class EquipmentController {
             return "{\"status\":\"stock updated\"}";
         });
 
-        /* =======================
-           DELETE /sprzet/:id
-           ======================= */
+        /*
+         * =======================
+         * DELETE /sprzet/:id
+         * =======================
+         */
         delete("/sprzet/:id", (req, res) -> {
             int id = Integer.parseInt(req.params(":id"));
 
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement ps =
-                         conn.prepareStatement("DELETE FROM sprzet WHERE id = ?")) {
+                    PreparedStatement ps = conn.prepareStatement("DELETE FROM sprzet WHERE id = ?")) {
 
                 ps.setInt(1, id);
                 ps.executeUpdate();
@@ -145,9 +126,11 @@ public class EquipmentController {
         });
     }
 
-    /* =======================
-       DTO pomocnicze
-       ======================= */
+    /*
+     * =======================
+     * DTO pomocnicze
+     * =======================
+     */
     private static class AddStockRequest {
         int amount;
     }
