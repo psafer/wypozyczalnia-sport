@@ -13,7 +13,8 @@ import pl.projekt.sprzet.db.DatabaseManager;
 public class App {
     public static void main(String[] args) {
         port(8080);
-        staticFiles.location("/public");
+        String projectDir = System.getProperty("user.dir");
+        staticFiles.externalLocation(projectDir + "/src/main/resources/public");
 
         DatabaseManager.initDatabase();
 
