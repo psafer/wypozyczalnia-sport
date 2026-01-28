@@ -88,6 +88,10 @@ public class DatabaseManager {
                 stmt.execute("ALTER TABLE rezerwacje ADD COLUMN totalCost REAL DEFAULT 0.0");
             } catch (SQLException ignored) {
             }
+            try {
+                stmt.execute("ALTER TABLE rezerwacje ADD COLUMN penalty REAL DEFAULT 0.0");
+            } catch (SQLException ignored) {
+            }
 
             /*
              * =======================
@@ -160,6 +164,10 @@ public class DatabaseManager {
                             INSERT INTO rezerwacje (equipmentId, clientId, dateFrom, dateTo, amount, totalCost, status)
                             VALUES (5, 5, '2025-12-01', '2025-12-06', 2, 100.0, 'RETURNED')
                         """);
+                stmt.execute("""
+                        INSERT INTO rezerwacje (equipmentId, clientId, dateFrom, dateTo, amount, totalCost, status)
+                        VALUES (1, 1, '2023-01-01', '2023-01-05', 1, 100.0, 'ACTIVE')
+                    """);
 
                 System.out.println("Dodano przykładowe rezerwacje.");
             }

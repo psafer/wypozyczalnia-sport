@@ -65,6 +65,9 @@ public class Reservation {
     public String getStatus() {
         return status;
     }
+     public String getClientName() {
+        return clientName;
+    }
 
     public void setStatus(String status) {
         this.status = status;
@@ -76,5 +79,14 @@ public class Reservation {
 
     public void setEquipmentName(String equipmentName) {
         this.equipmentName = equipmentName;
+    }
+
+    private double penalty;
+
+    public double getPenalty(){
+        return penalty;
+    }
+    public void setPenalty(double penalty){
+        this.penalty = penalty;
     }
 }
