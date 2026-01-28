@@ -77,4 +77,13 @@ public class Reservation {
     public void setEquipmentName(String equipmentName) {
         this.equipmentName = equipmentName;
     }
+
+    private double penalty;
+
+    public double getPenalty(){
+        return penalty;
+    }
+    public void setPenalty(double penalty){
+        this.penalty = penalty;
+    }
 }

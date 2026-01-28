@@ -19,7 +19,7 @@ public class EquipmentController {
         /*
          * =======================
          * GET /sprzet
-         * =======================
+         * =======================a
          */
         get("/sprzet", (req, res) -> {
             res.type("application/json");

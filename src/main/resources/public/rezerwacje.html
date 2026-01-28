@@ -121,16 +121,30 @@
         fetch(`/rezerwacje/${id}/zwrot`, {
           method: "POST",
         })
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error("Błąd zwrotu");
-            }
-            loadReservations();
-          })
-          .catch((err) => {
-            console.error(err);
-            alert("Nie udało się zwrócić sprzętu");
-          });
+                .then((res) => {
+                  if (!res.ok) {
+                    return res.json().then(errData => {
+                      throw new Error(errData.error || "Błąd zwrotu");
+                    });
+                  }
+                  return res.json();
+                })
+                .then((data) => {
+                  //Sprawdzamy czy przyszła kara
+                  if (data.penalty && data.penalty > 0) {
+                    //formatowanie kwoty do 2 miejsc po przecinku
+                    const penaltyAmount = parseFloat(data.penalty).toFixed(2);
+                    alert("Zwrot przyjęty.\nUWAGA! Naliczono karę za opóźnienie: " + penaltyAmount + " zł!");
+                  } else {
+                    alert("Zwrot przyjęty pomyślnie. Brak kar.");
+                  }
+
+                  loadReservations();
+                })
+                .catch((err) => {
+                  console.error(err);
+                  alert(err.message);
+                });
       }
 
       function deleteReservation(id) {
