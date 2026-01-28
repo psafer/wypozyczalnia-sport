@@ -167,6 +167,6 @@ src/main/java/pl/projekt/sprzet/
 
 ## 5. Autorzy
 
-- **Piotr Cierpiał**  
-- **Tomasz Czyż**  
-- **Joanna Sil**
+- [psafer](https://github.com/psafer)
+- [tomekk001](https://github.com/tomekk001)
+- [siljoanna](https://github.com/siljoanna)
