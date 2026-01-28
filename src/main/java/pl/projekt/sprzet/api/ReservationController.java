@@ -136,6 +136,77 @@ public class ReservationController {
                 return "{\"error\":\"Błąd zwrotu: " + e.getMessage() + "\"}";
             }
         });
+        /*
+        * =======================
+        * POST /rezerwacje
+        * =======================
+        */
+        post("/rezerwacje", (req, res) -> {
+            res.type("application/json");
+            Reservation r = gson.fromJson(req.body(), Reservation.class);
+
+            if (r.getEquipmentId() == 0 || r.getClientId() == 0 ||
+                r.getDateFrom() == null || r.getDateTo() == null ||
+                r.getAmount() <= 0) {
+                res.status(400);
+                return "{\"error\":\"Niepoprawne dane rezerwacji\"}";
+            }
+
+            try (Connection conn = DatabaseManager.getConnection()) {
+                conn.setAutoCommit(false);
+
+                // 1. Sprawdź dostępność sprzętu + cenę
+                PreparedStatement ps = conn.prepareStatement("""
+                    SELECT quantity, pricePerDay
+                    FROM sprzet
+                    WHERE id = ?
+                """);
+                ps.setInt(1, r.getEquipmentId());
+                ResultSet rs = ps.executeQuery();
+
+                if (!rs.next() || rs.getInt("quantity") < r.getAmount()) {
+                    res.status(400);
+                    return "{\"error\":\"Brak wystarczającej ilości sprzętu\"}";
+                }
+
+                double pricePerDay = rs.getDouble("pricePerDay");
+
+                // 2. Policz koszt
+                LocalDate from = LocalDate.parse(r.getDateFrom());
+                LocalDate to = LocalDate.parse(r.getDateTo());
+                long days = ChronoUnit.DAYS.between(from, to) + 1;
+                double totalCost = days * pricePerDay * r.getAmount();
+
+                // 3. Zapisz rezerwację
+                PreparedStatement insert = conn.prepareStatement("""
+                    INSERT INTO rezerwacje
+                    (equipmentId, clientId, dateFrom, dateTo, amount, totalCost, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')
+                """);
+                insert.setInt(1, r.getEquipmentId());
+                insert.setInt(2, r.getClientId());
+                insert.setString(3, r.getDateFrom());
+                insert.setString(4, r.getDateTo());
+                insert.setInt(5, r.getAmount());
+                insert.setDouble(6, totalCost);
+                insert.executeUpdate();
+
+                // 4. Zdejmij sprzęt ze stanu
+                PreparedStatement update = conn.prepareStatement("""
+                    UPDATE sprzet
+                    SET quantity = quantity - ?
+                    WHERE id = ?
+                """);
+                update.setInt(1, r.getAmount());
+                update.setInt(2, r.getEquipmentId());
+                update.executeUpdate();
+
+                conn.commit();
+                res.status(201);
+                return "{\"status\":\"created\"}";
+            }
+        });
+
 
         /*
          * =======================
@@ -156,68 +227,5 @@ public class ReservationController {
             res.status(204);
             return "";
         });
-        /*
-         * =======================
-         * POST /rezerwacje/:id/zwrot
-         * =======================
-         */
-        post("/rezerwacje/:id/zwrot", (req, res) -> {
-            res.type("application/json");
-            int id = Integer.parseInt(req.params(":id"));
-
-            try (Connection conn = DatabaseManager.getConnection()) {
-                conn.setAutoCommit(false);
-
-                // 1. Pobierz rezerwację
-                PreparedStatement ps = conn.prepareStatement("""
-                            SELECT equipmentId, amount, status
-                            FROM rezerwacje
-                            WHERE id = ?
-                        """);
-                ps.setInt(1, id);
-                ResultSet rs = ps.executeQuery();
-
-                if (!rs.next()) {
-                    res.status(404);
-                    return "{\"error\":\"Rezerwacja nie istnieje\"}";
-                }
-
-                if (!"ACTIVE".equals(rs.getString("status"))) {
-                    res.status(400);
-                    return "{\"error\":\"Rezerwacja już została zwrócona\"}";
-                }
-
-                int equipmentId = rs.getInt("equipmentId");
-                int amount = rs.getInt("amount");
-
-                // 2. Oddaj sprzęt do puli
-                PreparedStatement updateEq = conn.prepareStatement("""
-                            UPDATE sprzet
-                            SET quantity = quantity + ?
-                            WHERE id = ?
-                        """);
-                updateEq.setInt(1, amount);
-                updateEq.setInt(2, equipmentId);
-                updateEq.executeUpdate();
-
-                // 3. Zmień status rezerwacji
-                PreparedStatement updateRez = conn.prepareStatement("""
-                            UPDATE rezerwacje
-                            SET status = 'RETURNED'
-                            WHERE id = ?
-                        """);
-                updateRez.setInt(1, id);
-                updateRez.executeUpdate();
-
-                conn.commit();
-                return "{\"status\":\"returned\"}";
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                res.status(500);
-                return "{\"error\":\"Błąd zwrotu\"}";
-            }
-        });
-
     }
 }

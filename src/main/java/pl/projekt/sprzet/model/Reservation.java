@@ -65,6 +65,9 @@ public class Reservation {
     public String getStatus() {
         return status;
     }
+     public String getClientName() {
+        return clientName;
+    }
 
     public void setStatus(String status) {
         this.status = status;
